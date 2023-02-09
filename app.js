@@ -4,6 +4,8 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var mongoose = require('mongoose')
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
 
 var indexRouter = require('./routes/index');
 var loginRouter = require('./routes/login.routes');
@@ -19,6 +21,26 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.use(
+  session({
+    secret: process.env.SESS_SECRET,
+    resave: true,
+    saveUninitialized: false,
+    cookie: {
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 60000 // 60 * 1000 ms === 1 min
+    },
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB_URI 
+
+      // ttl => time to live
+      // ttl: 60 * 60 * 24 // 60sec * 60min * 24h => 1 day
+    })
+  })
+);
 
 app.use('/', indexRouter);
 app.use('/login', loginRouter);
